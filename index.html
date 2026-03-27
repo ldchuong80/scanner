@@ -3,100 +3,73 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Siêu Quét QR - AI Mode</title>
-    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+    <title>Siêu Quét QR 2026</title>
+    <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
-        body { margin: 0; background: #121212; color: white; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; }
-        .container { width: 90%; text-align: center; border: 2px dashed #444; padding: 25px; border-radius: 20px; }
-        .btn-scan { background: #28a745; color: white; border: none; padding: 20px; font-size: 18px; border-radius: 12px; cursor: pointer; font-weight: bold; width: 100%; margin-bottom: 15px; }
-        #status { font-size: 14px; margin-bottom: 10px; min-height: 20px; }
-        #preview { max-width: 100%; border-radius: 10px; display: none; margin-top: 15px; border: 1px solid #333; }
+        body { margin: 0; background: #000; color: #fff; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; }
+        /* Cấu hình khung quét nhỏ lại để dễ lấy nét mã QR tí hon */
+        #reader { width: 100%; max-width: 500px; height: 100vh; }
+        #result-box { 
+            position: fixed; bottom: 20px; width: 90%; padding: 15px; 
+            background: rgba(34, 34, 34, 0.95); border-radius: 15px; 
+            display: none; border: 1px solid #444; z-index: 100;
+            box-shadow: 0 -5px 20px rgba(0,0,0,0.5);
+        }
+        #qr-text { word-break: break-all; color: #00ff00; font-family: monospace; margin-bottom: 15px; font-size: 14px; }
+        .btn { background: #28a745; color: white; border: none; padding: 15px; border-radius: 10px; font-size: 16px; width: 100%; cursor: pointer; font-weight: bold; }
+        .status-top { position: fixed; top: 20px; background: rgba(0,0,0,0.6); padding: 10px 20px; border-radius: 20px; font-size: 13px; color: #aaa; z-index: 10; }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <h2>MÁY QUÉT "SIÊU LỌC"</h2>
-    <p style="color: #888; font-size: 13px;">Tối ưu cho CCCD bị lóa (Giống Zalo)</p>
+    <div class="status-top" id="msg">Đang khởi động Camera...</div>
+    <div id="reader"></div>
     
-    <button class="btn-scan" onclick="document.getElementById('file-input').click()">CHỤP ẢNH QUÉT NGAY</button>
-    <input type="file" id="file-input" accept="image/*" capture="environment" style="display: none;">
+    <div id="result-box" id="resBox">
+        <div style="margin-bottom: 8px; font-weight: bold; font-size: 13px;">DỮ LIỆU TRÍCH XUẤT:</div>
+        <div id="qr-text"></div>
+        <button class="btn" onclick="copyAndClose()">ĐỒNG Ý & QUAY LẠI APP</button>
+    </div>
 
-    <div id="status">Đang đợi ảnh...</div>
-    <img id="preview">
-</div>
-
-<script>
-    var fileInput = document.getElementById('file-input');
-    var statusDiv = document.getElementById('status');
-
-    fileInput.onchange = function(e) {
-        var file = e.target.files[0];
-        if (!file) return;
-
-        statusDiv.innerText = "⚡ Đang dùng AI khử lóa...";
-        statusDiv.style.color = "#ffc107";
-
-        var reader = new FileReader();
-        reader.onload = function(event) {
-            var img = new Image();
-            img.onload = function() {
-                var canvas = document.createElement("canvas");
-                var ctx = canvas.getContext("2d");
-                canvas.width = img.width;
-                canvas.height = img.height;
-                ctx.drawImage(img, 0, 0);
-                
-                var imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-                
-                // --- THUẬT TOÁN TIỀN XỬ LÝ (GIỐNG ZALO) ---
-                // Chuyển ảnh sang đen trắng cực hạn để triệt tiêu vùng lóa xám
-                var data = imageData.data;
-                for (var i = 0; i < data.length; i += 4) {
-                    var avg = (data[i] + data[i + 1] + data[i + 2]) / 3;
-                    // Nếu quá sáng (vùng lóa), chúng ta đẩy nó về trắng tinh (255)
-                    // Nếu hơi tối (mã QR), đẩy về đen đặc (0)
-                    var threshold = 180; 
-                    var v = (avg > threshold) ? 255 : 0;
-                    data[i] = data[i + 1] = data[i + 2] = v;
-                }
-                // ------------------------------------------
-
-                var code = jsQR(data, canvas.width, canvas.height);
-
-                if (code) {
-                    statusDiv.innerText = "✅ THÀNH CÔNG!";
-                    statusDiv.style.color = "#28a745";
-                    sendData(code.data);
-                } else {
-                    // Nếu lọc cực hạn không được, thử lại với ảnh gốc (Deep Scan)
-                    ctx.drawImage(img, 0, 0);
-                    var originalData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-                    var codeRetry = jsQR(originalData.data, canvas.width, canvas.height);
-                    
-                    if (codeRetry) {
-                        sendData(codeRetry.data);
-                    } else {
-                        statusDiv.innerText = "❌ Không tìm thấy mã. Hãy chụp xa hơn một chút!";
-                        statusDiv.style.color = "#dc3545";
-                    }
-                }
-            };
-            img.src = event.target.result;
-            document.getElementById('preview').src = event.target.result;
-            document.getElementById('preview').style.display = 'block';
+    <script>
+        const html5QrCode = new Html5Qrcode("reader");
+        
+        const qrCodeSuccessCallback = (decodedText, decodedResult) => {
+            // Khi quét trúng:
+            html5QrCode.stop(); 
+            document.getElementById('msg').innerText = "✅ ĐÃ NHẬN DIỆN!";
+            document.getElementById('qr-text').innerText = decodedText;
+            document.getElementById('result-box').style.display = 'block';
+            
+            // Tự động copy vào bộ nhớ đệm
+            navigator.clipboard.writeText(decodedText);
         };
-        reader.readAsDataURL(file);
-    };
 
-    function sendData(text) {
-        if (window.opener) {
-            window.opener.postMessage({ type: 'QR_SCAN_RESULT', data: text }, "*");
-            setTimeout(function() { window.close(); }, 500);
-        } else {
-            alert("Kết quả: " + text);
+        // CẤU HÌNH QUAN TRỌNG: Ô vuông nhỏ (150px) để ép Camera lấy nét xa
+        const config = { 
+            fps: 25, 
+            qrbox: { width: 180, height: 180 }, // Thu nhỏ ô vuông lại cho mã QR thẻ thật
+            aspectRatio: 1.0
+        };
+
+        // Khởi chạy camera sau
+        html5QrCode.start({ facingMode: "environment" }, config, qrCodeSuccessCallback)
+            .then(() => {
+                document.getElementById('msg').innerText = "Hãy đưa mã QR nhỏ vào giữa khung vuông";
+            })
+            .catch(err => {
+                document.getElementById('msg').innerText = "Lỗi: " + err;
+            });
+
+        function copyAndClose() {
+            const text = document.getElementById('qr-text').innerText;
+            if (window.opener) {
+                window.opener.postMessage({ type: 'QR_SCAN_RESULT', data: text }, "*");
+                setTimeout(() => { window.close(); }, 300);
+            } else {
+                alert("Đã nhận dữ liệu! Bạn hãy quay lại App.");
+            }
         }
-    }
-</script>
+    </script>
 </body>
 </html>
