@@ -3,67 +3,109 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Siêu Quét QR 2026</title>
-    <script src="https://unpkg.com/html5-qrcode"></script>
+    <title>Siêu Quét QR - Nồi Đồng Cối Đá</title>
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
     <style>
-        body { margin: 0; background: #000; color: #fff; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; }
-        #reader { width: 100%; max-width: 500px; border: none !important; }
-        #result-box { width: 90%; margin-top: 20px; padding: 15px; background: #222; border-radius: 10px; display: none; border: 1px solid #444; }
-        #qr-text { word-break: break-all; color: #00ff00; font-family: monospace; margin-bottom: 15px; }
-        .btn { background: #28a745; color: white; border: none; padding: 15px 30px; border-radius: 8px; font-size: 16px; width: 100%; cursor: pointer; }
-        .status { color: #888; margin-top: 10px; font-size: 13px; }
+        body { 
+            margin: 0; padding: 0; background: #121212; color: white; 
+            font-family: -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; 
+        }
+        .container { width: 90%; text-align: center; border: 2px dashed #444; padding: 30px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .btn-scan { 
+            background: linear-gradient(135deg, #28a745 0%, #218838 100%);
+            color: white; border: none; padding: 25px 40px; font-size: 20px; 
+            border-radius: 15px; cursor: pointer; font-weight: bold; width: 100%;
+            box-shadow: 0 10px 20px rgba(40, 167, 69, 0.3); transition: 0.3s;
+        }
+        .btn-scan:active { transform: scale(0.95); box-shadow: 0 5px 10px rgba(40, 167, 69, 0.2); }
+        #status { margin-top: 20px; color: #aaa; font-size: 14px; }
+        #preview { margin-top: 20px; max-width: 100%; border-radius: 10px; border: 2px solid #333; display: none; }
     </style>
 </head>
 <body>
 
-    <div id="reader"></div>
-    
-    <div id="result-box">
-        <div style="margin-bottom: 10px; font-weight: bold;">ĐÃ TRÍCH XUẤT TEXT:</div>
-        <div id="qr-text"></div>
-        <button class="btn" onclick="copyAndClose()">COPY DỮ LIỆU & QUAY LẠI</button>
+    <div class="container">
+        <h2 style="margin-bottom: 30px;">MÁY QUÉT CCCD / CÀ VẸT</h2>
+        <p style="color: #aaa; margin-bottom: 20px;">Dành cho mã QR nhỏ xíu trên thẻ thật</p>
+        
+        <button class="btn-scan" onclick="startScanning()">BẤM ĐỂ CHỤP MÃ QR</button>
+        
+        <input type="file" id="file-input" accept="image/*" capture="environment" style="display: none;">
+        
+        <div id="status">Sẵn sàng kết nối...</div>
+        <img id="preview" alt="Preview">
     </div>
 
-    <div class="status" id="loading-msg">Đang khởi động Camera siêu nét...</div>
-
     <script>
-        const html5QrCode = new Html5Qrcode("reader");
-        const qrCodeSuccessCallback = (decodedText, decodedResult) => {
-            // Khi quét trúng:
-            html5QrCode.stop(); // Dừng camera
-            document.getElementById('reader').style.display = 'none';
-            document.getElementById('loading-msg').style.display = 'none';
-            
-            document.getElementById('qr-text').innerText = decodedText;
-            document.getElementById('result-box').style.display = 'block';
-            
-            // Tự động copy vào bộ nhớ đệm
-            navigator.clipboard.writeText(decodedText);
+        var fileInput = document.getElementById('file-input');
+        var statusDiv = document.getElementById('status');
+        var previewImg = document.getElementById('preview');
+
+        function startScanning() {
+            fileInput.click();
+        }
+
+        fileInput.onchange = function(e) {
+            var file = e.target.files[0];
+            if (!file) return;
+
+            statusDiv.innerText = "Đang phân tích mã QR nhỏ xíu...";
+            statusDiv.style.color = "#ffc107";
+
+            var reader = new FileReader();
+            reader.onload = function(event) {
+                var img = new Image();
+                img.onload = function() {
+                    // Vẽ ảnh ra Canvas ảo để soi từng pixel
+                    var canvas = document.createElement("canvas");
+                    var ctx = canvas.getContext("2d");
+                    
+                    // Giữ nguyên độ phân giải gốc của iPhone 17/Redmi K90 để không mất nét mã QR nhỏ
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    ctx.drawImage(img, 0, 0);
+                    
+                    var imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                    
+                    // Giải mã bằng thư viện jsQR
+                    var code = jsQR(imageData.data, imageData.width, imageData.height, {
+                        inversionAttempts: "dontInvert",
+                    });
+
+                    if (code) {
+                        statusDiv.innerText = "THÀNH CÔNG! ĐANG GỬI DỮ LIỆU...";
+                        statusDiv.style.color = "#28a745";
+                        
+                        // Gửi dữ liệu về App chính (Hàm sendDataToGAS chúng ta sẽ làm ở Bước 2)
+                        sendDataToGAS(code.data);
+                    } else {
+                        statusDiv.innerText = "KHÔNG TÌM THẤY MÃ. Hãy chụp rõ nét và đừng để bị lóa đèn nhé!";
+                        statusDiv.style.color = "#dc3545";
+                        alert("Không tìm thấy mã. Gợi ý: Hãy chụp rõ nét, đừng chụp quá gần (khoảng 20cm) để máy lấy nét chuẩn!");
+                    }
+                };
+                img.src = event.target.result;
+                previewImg.src = event.target.result;
+                previewImg.style.display = "block";
+            };
+            reader.readAsDataURL(file);
         };
 
-        const config = { 
-            fps: 20, 
-            qrbox: { width: 250, height: 250 },
-            aspectRatio: 1.0
-        };
-
-        // Khởi chạy camera sau (environment)
-        html5QrCode.start({ facingMode: "environment" }, config, qrCodeSuccessCallback)
-            .then(() => {
-                document.getElementById('loading-msg').innerText = "Hãy đưa mã QR vào khung vuông";
-            })
-            .catch(err => {
-                document.getElementById('loading-msg').innerText = "Lỗi Camera: " + err;
-            });
-
-        function copyAndClose() {
-            const text = document.getElementById('qr-text').innerText;
+        function sendDataToGAS(rawData) {
             if (window.opener) {
-                // Gửi dữ liệu về App chính (GAS)
-                window.opener.postMessage({ type: 'QR_SCAN_RESULT', data: text }, "*");
-                window.close();
+                // "Bắn" tin nhắn về App GAS
+                window.opener.postMessage({ type: 'QR_SCAN_RESULT', data: rawData }, "*");
+                
+                // Mẹo nhỏ: iPhone 17 hay Android 15+ hay chặn window.close()
+                // Nhưng chúng ta thử đóng xem có được không, nếu không được thì người dùng tự đóng tab.
+                try {
+                    window.close();
+                } catch (e) {
+                    console.error("Trình duyệt chặn đóng Tab, người dùng cần tự đóng.", e);
+                }
             } else {
-                alert("Đã Copy! Bạn hãy quay lại App và Dán vào nhé.");
+                alert("Dữ liệu Cà vẹt: " + rawData + "\n(Vui lòng copy và dán vào App của bạn)");
             }
         }
     </script>
