@@ -3,42 +3,67 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>QR Scanner</title>
-    <script src="https://unpkg.com/html5-qrcode"></script>
+    <title>QR Scanner - Bridge Mode</title>
     <style>
-        body { margin: 0; background: #000; color: white; font-family: sans-serif; overflow: hidden; display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; }
-        #reader { width: 100%; height: 100%; }
-        #info { position: fixed; top: 20px; z-index: 10; background: rgba(0,0,0,0.6); padding: 10px; border-radius: 5px; }
+        body { margin: 0; background: #121212; color: white; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; text-align: center; }
+        .btn-camera { background: #007bff; color: white; border: none; padding: 25px 40px; font-size: 22px; border-radius: 15px; cursor: pointer; font-weight: bold; width: 80%; }
+        #result-container { margin-top: 30px; display: none; width: 90%; }
+        #qr-data { background: #333; padding: 15px; border-radius: 8px; word-break: break-all; margin-bottom: 20px; border: 1px solid #555; }
+        .btn-copy { background: #28a745; color: white; border: none; padding: 20px; font-size: 18px; border-radius: 10px; cursor: pointer; width: 100%; }
     </style>
 </head>
 <body>
-    <div id="info">Đang mở camera...</div>
-    <div id="reader"></div>
 
+    <button class="btn-camera" onclick="document.getElementById('file-input').click()">MỞ CAMERA QUÉT MÃ</button>
+    <input type="file" id="file-input" accept="image/*" capture="environment" style="display: none;">
+
+    <div id="result-container">
+        <p>Đã nhận diện mã QR:</p>
+        <div id="qr-data"></div>
+        <button class="btn-copy" onclick="copyAndReturn()">COPY & QUAY LẠI APP</button>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
     <script>
-        var html5QrCode = new Html5Qrcode("reader");
-        var config = { 
-            fps: 20, 
-            qrbox: { width: 250, height: 250 },
-            aspectRatio: 1.0
+        var input = document.getElementById('file-input');
+        input.onchange = function(e) {
+            var file = e.target.files[0];
+            if (!file) return;
+
+            var reader = new FileReader();
+            reader.onload = function(event) {
+                var img = new Image();
+                img.onload = function() {
+                    var canvas = document.createElement("canvas");
+                    var ctx = canvas.getContext("2d");
+                    canvas.width = img.width; canvas.height = img.height;
+                    ctx.drawImage(img, 0, 0);
+                    var imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                    var code = jsQR(imageData.data, imageData.width, imageData.height);
+
+                    if (code) {
+                        document.getElementById('qr-data').innerText = code.data;
+                        document.getElementById('result-container').style.display = 'block';
+                        // Tự động copy luôn cho nhanh
+                        navigator.clipboard.writeText(code.data);
+                    } else {
+                        alert("Không tìm thấy mã. Hãy chụp rõ nét hơn nhé!");
+                    }
+                };
+                img.src = event.target.result;
+            };
+            reader.readAsDataURL(file);
         };
 
-        html5QrCode.start({ facingMode: "environment" }, config, 
-            function(decodedText) {
-                if (window.opener) {
-                    // Bắn dữ liệu về trang Google Apps Script
-                    window.opener.postMessage({ type: 'QR_SCAN_RESULT', data: decodedText }, "*");
-                    document.getElementById('info').innerHTML = "Đã quét thành công!";
-                    setTimeout(function() { window.close(); }, 600);
-                } else {
-                    alert("Kết quả: " + decodedText);
-                }
+        function copyAndReturn() {
+            var data = document.getElementById('qr-data').innerText;
+            if (window.opener) {
+                window.opener.postMessage({ type: 'QR_SCAN_RESULT', data: data }, "*");
+                window.close();
+            } else {
+                alert("Đã copy! Hãy dán vào App của bạn.");
             }
-        ).then(() => {
-            document.getElementById('info').innerHTML = "Hãy đưa mã QR vào khung vuông";
-        }).catch(err => {
-            document.getElementById('info').innerHTML = "Lỗi: " + err;
-        });
+        }
     </script>
 </body>
 </html>
