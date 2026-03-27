@@ -1,67 +1,69 @@
 <!DOCTYPE html>
-<html>
+<html lang="vi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>QR Scanner - Bridge Mode</title>
+    <title>Siêu Quét QR 2026</title>
+    <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
-        body { margin: 0; background: #121212; color: white; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; text-align: center; }
-        .btn-camera { background: #007bff; color: white; border: none; padding: 25px 40px; font-size: 22px; border-radius: 15px; cursor: pointer; font-weight: bold; width: 80%; }
-        #result-container { margin-top: 30px; display: none; width: 90%; }
-        #qr-data { background: #333; padding: 15px; border-radius: 8px; word-break: break-all; margin-bottom: 20px; border: 1px solid #555; }
-        .btn-copy { background: #28a745; color: white; border: none; padding: 20px; font-size: 18px; border-radius: 10px; cursor: pointer; width: 100%; }
+        body { margin: 0; background: #000; color: #fff; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; }
+        #reader { width: 100%; max-width: 500px; border: none !important; }
+        #result-box { width: 90%; margin-top: 20px; padding: 15px; background: #222; border-radius: 10px; display: none; border: 1px solid #444; }
+        #qr-text { word-break: break-all; color: #00ff00; font-family: monospace; margin-bottom: 15px; }
+        .btn { background: #28a745; color: white; border: none; padding: 15px 30px; border-radius: 8px; font-size: 16px; width: 100%; cursor: pointer; }
+        .status { color: #888; margin-top: 10px; font-size: 13px; }
     </style>
 </head>
 <body>
 
-    <button class="btn-camera" onclick="document.getElementById('file-input').click()">MỞ CAMERA QUÉT MÃ</button>
-    <input type="file" id="file-input" accept="image/*" capture="environment" style="display: none;">
-
-    <div id="result-container">
-        <p>Đã nhận diện mã QR:</p>
-        <div id="qr-data"></div>
-        <button class="btn-copy" onclick="copyAndReturn()">COPY & QUAY LẠI APP</button>
+    <div id="reader"></div>
+    
+    <div id="result-box">
+        <div style="margin-bottom: 10px; font-weight: bold;">ĐÃ TRÍCH XUẤT TEXT:</div>
+        <div id="qr-text"></div>
+        <button class="btn" onclick="copyAndClose()">COPY DỮ LIỆU & QUAY LẠI</button>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+    <div class="status" id="loading-msg">Đang khởi động Camera siêu nét...</div>
+
     <script>
-        var input = document.getElementById('file-input');
-        input.onchange = function(e) {
-            var file = e.target.files[0];
-            if (!file) return;
-
-            var reader = new FileReader();
-            reader.onload = function(event) {
-                var img = new Image();
-                img.onload = function() {
-                    var canvas = document.createElement("canvas");
-                    var ctx = canvas.getContext("2d");
-                    canvas.width = img.width; canvas.height = img.height;
-                    ctx.drawImage(img, 0, 0);
-                    var imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-                    var code = jsQR(imageData.data, imageData.width, imageData.height);
-
-                    if (code) {
-                        document.getElementById('qr-data').innerText = code.data;
-                        document.getElementById('result-container').style.display = 'block';
-                        // Tự động copy luôn cho nhanh
-                        navigator.clipboard.writeText(code.data);
-                    } else {
-                        alert("Không tìm thấy mã. Hãy chụp rõ nét hơn nhé!");
-                    }
-                };
-                img.src = event.target.result;
-            };
-            reader.readAsDataURL(file);
+        const html5QrCode = new Html5Qrcode("reader");
+        const qrCodeSuccessCallback = (decodedText, decodedResult) => {
+            // Khi quét trúng:
+            html5QrCode.stop(); // Dừng camera
+            document.getElementById('reader').style.display = 'none';
+            document.getElementById('loading-msg').style.display = 'none';
+            
+            document.getElementById('qr-text').innerText = decodedText;
+            document.getElementById('result-box').style.display = 'block';
+            
+            // Tự động copy vào bộ nhớ đệm
+            navigator.clipboard.writeText(decodedText);
         };
 
-        function copyAndReturn() {
-            var data = document.getElementById('qr-data').innerText;
+        const config = { 
+            fps: 20, 
+            qrbox: { width: 250, height: 250 },
+            aspectRatio: 1.0
+        };
+
+        // Khởi chạy camera sau (environment)
+        html5QrCode.start({ facingMode: "environment" }, config, qrCodeSuccessCallback)
+            .then(() => {
+                document.getElementById('loading-msg').innerText = "Hãy đưa mã QR vào khung vuông";
+            })
+            .catch(err => {
+                document.getElementById('loading-msg').innerText = "Lỗi Camera: " + err;
+            });
+
+        function copyAndClose() {
+            const text = document.getElementById('qr-text').innerText;
             if (window.opener) {
-                window.opener.postMessage({ type: 'QR_SCAN_RESULT', data: data }, "*");
+                // Gửi dữ liệu về App chính (GAS)
+                window.opener.postMessage({ type: 'QR_SCAN_RESULT', data: text }, "*");
                 window.close();
             } else {
-                alert("Đã copy! Hãy dán vào App của bạn.");
+                alert("Đã Copy! Bạn hãy quay lại App và Dán vào nhé.");
             }
         }
     </script>
