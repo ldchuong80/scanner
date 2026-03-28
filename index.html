@@ -75,16 +75,18 @@
             const text = document.getElementById('qr-text').innerText;
             
             if (window.opener) {
-                // 1. Bắn dữ liệu về cho cha
+                // 1. Bắn tin nhắn về cho cha trước
                 window.opener.postMessage({ type: 'QR_SCAN_RESULT', data: text }, "*");
                 
-                // 2. Đóng cửa sổ GitHub ngay lập tức để trả quyền điều khiển cho trang cha
-                // Việc đóng này giúp Safari thoát khỏi trạng thái chờ
-                window.close(); 
+                // 2. Đợi 100-200ms để trình duyệt kịp xử lý việc gửi tin rồi mới đóng
+                // Khoảng thời gian này mắt người không nhận ra nhưng đủ cho Chrome Android
+                setTimeout(function() {
+                    window.close();
+                }, 150); 
             } else {
-                // Nếu mất kết nối opener, copy vào bộ nhớ để user dán thủ công
+                // Dự phòng nếu mất opener
                 navigator.clipboard.writeText(text).then(() => {
-                    alert("Đã copy! Hãy quay lại App và dán vào ô nhập liệu.");
+                    alert("Đã copy dữ liệu!");
                     window.close();
                 });
             }
