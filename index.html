@@ -70,14 +70,23 @@
         }
 
         // HÀNH ĐỘNG 2: ĐỒNG Ý (Gửi dữ liệu về để Alert và xử lý)
-        function copyAndClose() {
+        function copyAndClose() 
+        {
             const text = document.getElementById('qr-text').innerText;
+            
             if (window.opener) {
-                // Bắn tin nhắn về kèm theo type để phân biệt
+                // 1. Bắn dữ liệu về cho cha
                 window.opener.postMessage({ type: 'QR_SCAN_RESULT', data: text }, "*");
-                setTimeout(() => { window.close(); }, 200);
+                
+                // 2. Đóng cửa sổ GitHub ngay lập tức để trả quyền điều khiển cho trang cha
+                // Việc đóng này giúp Safari thoát khỏi trạng thái chờ
+                window.close(); 
             } else {
-                window.close();
+                // Nếu mất kết nối opener, copy vào bộ nhớ để user dán thủ công
+                navigator.clipboard.writeText(text).then(() => {
+                    alert("Đã copy! Hãy quay lại App và dán vào ô nhập liệu.");
+                    window.close();
+                });
             }
         }
     </script>
