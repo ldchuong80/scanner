@@ -69,26 +69,27 @@
             window.close();
         }
 
+        // Thêm Listener để đợi lệnh ĐÓNG từ trang cha
+        window.addEventListener("message", function(event) {
+            if (event.data && event.data.type === 'CLOSE_SCANNER') {
+                window.close();
+            }
+        });
+
+
         // HÀNH ĐỘNG 2: ĐỒNG Ý (Gửi dữ liệu về để Alert và xử lý)
         function copyAndClose() 
         {
-            const text = document.getElementById('qr-text').innerText;
-            
+            var text = document.getElementById('qr-text').innerText;
             if (window.opener) {
-                // 1. Bắn tin nhắn về cho cha trước
+                // 1. Bắn dữ liệu về cho cha
                 window.opener.postMessage({ type: 'QR_SCAN_RESULT', data: text }, "*");
                 
-                // 2. Đợi 100-200ms để trình duyệt kịp xử lý việc gửi tin rồi mới đóng
-                // Khoảng thời gian này mắt người không nhận ra nhưng đủ cho Chrome Android
-                setTimeout(function() {
-                    window.close();
-                }, 150); 
+                // 2. KHÔNG gọi window.close() ở đây nữa. 
+                // Chúng ta sẽ đợi trang cha xác nhận đã nhận xong rồi mới đóng.
+                document.getElementById('msg').innerText = "Đang truyền dữ liệu...";
             } else {
-                // Dự phòng nếu mất opener
-                navigator.clipboard.writeText(text).then(() => {
-                    alert("Đã copy dữ liệu!");
-                    window.close();
-                });
+                window.close();
             }
         }
     </script>
