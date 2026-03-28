@@ -3,15 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Siêu Quét QR 2026 - Vertical Mode</title>
+    <title>Siêu Quét QR 2026 - Macro Mode</title>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
         body { margin: 0; background: #000; color: #fff; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; overflow: hidden; height: 100vh; }
         
-        /* Mở rộng tối đa vùng hiển thị camera */
+        /* 1. MỞ RỘNG VÙNG CAMERA - XÓA BỎ VÙNG ĐEN */
         #reader { width: 100%; height: 100%; position: absolute; top: 0; left: 0; z-index: 1; }
-        
-        /* Nút đóng ở góc trên bên trái cho thoáng */
+        #reader video { object-fit: cover !important; }
+
         .close-btn { 
             position: fixed; top: 15px; left: 15px; width: 40px; height: 40px; 
             background: rgba(220, 53, 69, 0.8); color: white; border-radius: 50%; 
@@ -19,23 +19,22 @@
             font-size: 24px; z-index: 1001; cursor: pointer; border: 2px solid #fff;
         }
 
-        /* PANEL ĐIỀU CHỈNH DỌC - NẰM BÊN PHẢI */
+        /* 2. THANH TRƯỢT DỌC BÊN PHẢI - KHÔNG ĐÈ VÙNG QUÉT */
         .config-panel {
-            position: fixed; right: 15px; top: 50%; transform: translateY(-50%);
+            position: fixed; right: 10px; top: 50%; transform: translateY(-50%);
             width: 50px; background: rgba(0,0,0,0.6); 
-            padding: 15px 5px; border-radius: 25px; z-index: 1000; border: 1px solid #00ff00;
+            padding: 20px 5px; border-radius: 25px; z-index: 1000; border: 1px solid #00ff00;
             text-align: center; backdrop-filter: blur(5px);
             display: flex; flex-direction: column; align-items: center;
         }
         .config-panel label { 
-            font-size: 10px; color: #00ff00; margin-bottom: 10px; 
+            font-size: 11px; color: #00ff00; margin-bottom: 15px; 
             font-weight: bold; text-transform: uppercase; writing-mode: vertical-rl;
         }
         
-        /* Ép thanh trượt nằm dọc */
         #zoom-range { 
             -webkit-appearance: slider-vertical; 
-            width: 20px; height: 200px; outline: none; cursor: pointer;
+            width: 25px; height: 200px; outline: none; cursor: pointer;
         }
 
         #result-box { 
@@ -45,18 +44,18 @@
             box-shadow: 0 -5px 25px rgba(0,255,0,0.2);
         }
         #qr-text { word-break: break-all; color: #00ff00; font-family: 'Courier New', monospace; margin-bottom: 15px; font-size: 14px; max-height: 80px; overflow-y: auto; }
-        .btn { background: #28a745; color: white; border: none; padding: 15px; border-radius: 10px; font-size: 16px; width: 100%; cursor: pointer; font-weight: bold; transition: 0.2s; }
+        .btn { background: #28a745; color: white; border: none; padding: 15px; border-radius: 10px; font-size: 16px; width: 100%; cursor: pointer; font-weight: bold; }
         
-        .status-top { position: fixed; top: 20px; right: 70px; background: rgba(0,255,0,0.2); padding: 6px 15px; border-radius: 20px; font-size: 12px; color: #00ff00; z-index: 1000; border: 1px solid #00ff00; }
+        .status-top { position: fixed; top: 20px; left: 70px; background: rgba(0,255,0,0.2); padding: 6px 15px; border-radius: 20px; font-size: 12px; color: #00ff00; z-index: 1000; border: 1px solid #00ff00; }
     </style>
 </head>
 <body>
 
     <div class="close-btn" onclick="justClose()">×</div>
-    <div class="status-top" id="msg">Khởi tạo...</div>
+    <div class="status-top" id="msg">ĐANG QUÉT...</div>
 
     <div class="config-panel">
-        <label id="zoom-label">Size: 150px</label>
+        <label id="zoom-label">SIZE: 150PX</label>
         <input type="range" id="zoom-range" min="50" max="300" value="150" step="5">
     </div>
 
@@ -73,10 +72,11 @@
         var isScanning = false;
 
         var startCamera = function(boxSize) {
+            // GIỮ NGUYÊN LOGIC BOX CŨ: Không ép aspectRatio 1.0 để máy tự quét tốt nhất
             var config = { 
                 fps: 30, 
-                qrbox: { width: boxSize, height: boxSize }, 
-                aspectRatio: 1.0 
+                qrbox: { width: boxSize, height: boxSize }
+                // Đã bỏ aspectRatio: 1.0 để giữ khung hình chữ nhật dài như bản gốc bạn đang dùng ổn
             };
 
             if (isScanning) {
@@ -111,7 +111,7 @@
 
         document.getElementById('zoom-range').addEventListener('change', function(e) {
             var newSize = parseInt(e.target.value);
-            document.getElementById('zoom-label').innerText = "Size: " + newSize + "px";
+            document.getElementById('zoom-label').innerText = "SIZE: " + newSize + "PX";
             startCamera(newSize);
         });
 
@@ -128,16 +128,13 @@
         function copyAndClose() {
             var text = document.getElementById('qr-text').innerText;
             if (window.opener) {
-                // Gửi dữ liệu về trang cha
                 window.opener.postMessage({ type: 'QR_SCAN_RESULT', data: text }, "*");
-                document.getElementById('msg').innerText = "Đang truyền...";
-                // KHÔNG đóng window ở đây, đợi lệnh 'CLOSE_SCANNER' từ cha gửi sang
+                document.getElementById('msg').innerText = "Đang gửi...";
             } else {
                 window.close();
             }
         }
 
-        // Lắng nghe lệnh đóng từ trang cha sau khi đã xử lý xong dữ liệu
         window.addEventListener("message", function(event) {
             if (event.data && event.data.type === 'CLOSE_SCANNER') {
                 window.close();
