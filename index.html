@@ -3,95 +3,145 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Siêu Quét QR 2026</title>
+    <title>Siêu Quét QR 2026 - Pro Version</title>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
-        body { margin: 0; background: #000; color: #fff; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; overflow: hidden; }
-        #reader { width: 100%; max-width: 500px; height: 100vh; }
+        body { margin: 0; background: #000; color: #fff; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; overflow: hidden; height: 100vh; }
+        #reader { width: 100%; height: 100%; position: absolute; top: 0; left: 0; }
         
-        /* Nút Đóng (X) ở góc trên bên phải */
+        /* Nút Đóng */
         .close-btn { 
-            position: fixed; top: 15px; right: 15px; width: 35px; height: 35px; 
-            background: rgba(255, 255, 255, 0.2); color: white; border-radius: 50%; 
+            position: fixed; top: 15px; right: 15px; width: 40px; height: 40px; 
+            background: rgba(255, 0, 0, 0.6); color: white; border-radius: 50%; 
             display: flex; align-items: center; justify-content: center; 
-            font-size: 20px; font-weight: bold; z-index: 1000; cursor: pointer;
-            border: 1px solid rgba(255,255,255,0.3);
+            font-size: 24px; z-index: 1000; cursor: pointer; border: 2px solid #fff;
         }
 
+        /* Thanh điều chỉnh khung quét (Zoom) */
+        .config-panel {
+            position: fixed; top: 70px; width: 85%; background: rgba(0,0,0,0.7); 
+            padding: 12px; border-radius: 15px; z-index: 100; border: 1px solid #444;
+            text-align: center;
+        }
+        .config-panel label { font-size: 13px; color: #00ff00; margin-bottom: 8px; display: block; font-weight: bold; }
+        #zoom-range { width: 100%; height: 10px; border-radius: 5px; background: #333; outline: none; -webkit-appearance: none; }
+        #zoom-range::-webkit-slider-thumb { -webkit-appearance: none; width: 25px; height: 25px; background: #28a745; border-radius: 50%; cursor: pointer; border: 2px solid #fff; }
+
+        /* Hộp kết quả */
         #result-box { 
             position: fixed; bottom: 20px; width: 90%; padding: 15px; 
             background: rgba(34, 34, 34, 0.95); border-radius: 15px; 
-            display: none; border: 1px solid #444; z-index: 100;
-            box-shadow: 0 -5px 20px rgba(0,0,0,0.5);
+            display: none; border: 1px solid #444; z-index: 1000;
+            box-shadow: 0 -5px 20px rgba(0,0,0,0.8);
         }
-        #qr-text { word-break: break-all; color: #00ff00; font-family: monospace; margin-bottom: 15px; font-size: 14px; }
+        #qr-text { word-break: break-all; color: #00ff00; font-family: monospace; margin-bottom: 15px; font-size: 14px; max-height: 100px; overflow-y: auto; }
         .btn { background: #28a745; color: white; border: none; padding: 15px; border-radius: 10px; font-size: 16px; width: 100%; cursor: pointer; font-weight: bold; }
-        .status-top { position: fixed; top: 20px; left: 20px; background: rgba(0,0,0,0.6); padding: 10px 20px; border-radius: 20px; font-size: 13px; color: #aaa; z-index: 10; }
+        
+        .status-top { position: fixed; top: 20px; left: 20px; background: rgba(0,0,0,0.6); padding: 8px 15px; border-radius: 20px; font-size: 12px; color: #fff; z-index: 10; border: 1px solid #00ff00; }
     </style>
 </head>
 <body>
 
     <div class="close-btn" onclick="justClose()">×</div>
+    <div class="status-top" id="msg">Đang quét...</div>
 
-    <div class="status-top" id="msg">Đang khởi động Camera...</div>
+    <div class="config-panel">
+        <label id="zoom-label">Kích thước khung: 250px</label>
+        <input type="range" id="zoom-range" min="150" max="450" value="250" step="10">
+    </div>
+
     <div id="reader"></div>
     
     <div id="result-box">
-        <div style="margin-bottom: 8px; font-weight: bold; font-size: 13px;">DỮ LIỆU TRÍCH XUẤT:</div>
+        <div style="margin-bottom: 8px; font-weight: bold; font-size: 13px; color: #aaa;">DỮ LIỆU NHẬN DIỆN:</div>
         <div id="qr-text"></div>
-        <button class="btn" onclick="copyAndClose()">ĐỒNG Ý & QUAY LẠI APP</button>
+        <button class="btn" onclick="copyAndClose()">ĐỒNG Ý & XÁC NHẬN</button>
     </div>
 
     <script>
-        const html5QrCode = new Html5Qrcode("reader");
-        
-        const qrCodeSuccessCallback = (decodedText, decodedResult) => {
-            html5QrCode.stop(); 
+        var html5QrCode = new Html5Qrcode("reader");
+        var currentBoxSize = 250; // Mặc định vừa phải
+        var isScanning = false;
+
+        // Hàm khởi tạo scanner với thông số động
+        var startCamera = function(boxSize) {
+            var config = { 
+                fps: 30, // Tăng fps để quét mượt hơn
+                qrbox: { width: boxSize, height: boxSize }, 
+                aspectRatio: 1.0 
+            };
+
+            // Nếu đang scan thì phải stop rồi mới start lại với config mới
+            if (isScanning) {
+                html5QrCode.stop().then(function() {
+                    doStart(config);
+                }).catch(function(err) { console.error(err); });
+            } else {
+                doStart(config);
+            }
+        };
+
+        var doStart = function(config) {
+            html5QrCode.start({ facingMode: "environment" }, config, qrCodeSuccessCallback)
+                .then(function() {
+                    isScanning = true;
+                    document.getElementById('msg').innerText = "Camera Sẵn sàng";
+                })
+                .catch(function(err) {
+                    document.getElementById('msg').innerText = "Lỗi Camera: " + err;
+                });
+        };
+
+        var qrCodeSuccessCallback = function(decodedText, decodedResult) {
+            // Rung một cái cho chuyên nghiệp (nếu đt hỗ trợ)
+            if (navigator.vibrate) navigator.vibrate(100);
+            
+            html5QrCode.stop();
+            isScanning = false;
+            
             document.getElementById('msg').innerText = "✅ ĐÃ NHẬN DIỆN!";
             document.getElementById('qr-text').innerText = decodedText;
             document.getElementById('result-box').style.display = 'block';
             
-            // Tự động copy vào bộ nhớ đệm (vẫn giữ để hỗ trợ dán thủ công nếu cần)
-            navigator.clipboard.writeText(decodedText).catch(() => {});
+            // Tự động copy
+            navigator.clipboard.writeText(decodedText).catch(function(){});
         };
 
-        const config = { 
-            fps: 25, 
-            qrbox: { width: 150, height: 150 }, 
-            aspectRatio: 1.0
-        };
+        // Lắng nghe thanh trượt để đổi size khung quét ngay lập tức
+        document.getElementById('zoom-range').addEventListener('change', function(e) {
+            var newSize = parseInt(e.target.value);
+            document.getElementById('zoom-label').innerText = "Kích thước khung: " + newSize + "px";
+            startCamera(newSize);
+        });
 
-        html5QrCode.start({ facingMode: "environment" }, config, qrCodeSuccessCallback)
-            .catch(err => { document.getElementById('msg').innerText = "Lỗi: " + err; });
+        // Khởi động lần đầu
+        startCamera(currentBoxSize);
 
-        // HÀNH ĐỘNG 1: CHỈ ĐÓNG (Không làm gì cả)
         function justClose() {
-            window.close();
+            if (isScanning) {
+                html5QrCode.stop().then(function() { window.close(); }).catch(function() { window.close(); });
+            } else {
+                window.close();
+            }
         }
 
-        // Thêm Listener để đợi lệnh ĐÓNG từ trang cha
+        function copyAndClose() {
+            var text = document.getElementById('qr-text').innerText;
+            if (window.opener) {
+                window.opener.postMessage({ type: 'QR_SCAN_RESULT', data: text }, "*");
+                document.getElementById('msg').innerText = "Đang truyền dữ liệu...";
+                // Để trang cha tự đóng window này sau khi nhận tin nhắn
+            } else {
+                window.close();
+            }
+        }
+
+        // Đóng từ xa
         window.addEventListener("message", function(event) {
             if (event.data && event.data.type === 'CLOSE_SCANNER') {
                 window.close();
             }
         });
-
-
-        // HÀNH ĐỘNG 2: ĐỒNG Ý (Gửi dữ liệu về để Alert và xử lý)
-        function copyAndClose() 
-        {
-            var text = document.getElementById('qr-text').innerText;
-            if (window.opener) {
-                // 1. Bắn dữ liệu về cho cha
-                window.opener.postMessage({ type: 'QR_SCAN_RESULT', data: text }, "*");
-                
-                // 2. KHÔNG gọi window.close() ở đây nữa. 
-                // Chúng ta sẽ đợi trang cha xác nhận đã nhận xong rồi mới đóng.
-                document.getElementById('msg').innerText = "Đang truyền dữ liệu...";
-            } else {
-                window.close();
-            }
-        }
     </script>
 </body>
 </html>
