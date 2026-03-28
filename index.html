@@ -106,16 +106,30 @@
             }
         };
 
+       
+
         var doStart = function(config) {
-            html5QrCode.start({ facingMode: "environment" }, config, qrCodeSuccessCallback)
-                .then(function() {
-                    isScanning = true;
-                    document.getElementById('msg').innerText = "ĐANG QUÉT...";
-                })
-                .catch(function(err) {
-                    document.getElementById('msg').innerText = "LỖI: " + err;
-                });
-        };
+                html5QrCode.start({ facingMode: "environment" }, config, qrCodeSuccessCallback)
+                    .then(function() {
+                        isScanning = true;
+                        document.getElementById('msg').innerText = "ĐANG QUÉT...";
+            
+                        // --- ĐOẠN THÊM MỚI ĐỂ SET ZOOM 2X ---
+                        var videoTrack = html5QrCode.getRunningTrack();
+                        var capabilities = videoTrack.getCapabilities();
+                        
+                        // Kiểm tra xem điện thoại có hỗ trợ Zoom không
+                        if (capabilities.zoom) {
+                            videoTrack.applyConstraints({
+                                advanced: [{ zoom: 2 }] // Thay số 2 bằng mức zoom bạn muốn (ví dụ 1.5, 3)
+                            });
+                        }
+                        // ------------------------------------
+                    })
+                    .catch(function(err) {
+                        document.getElementById('msg').innerText = "LỖI: " + err;
+                    });
+            };
 
         var qrCodeSuccessCallback = function(decodedText, decodedResult) {
             if (navigator.vibrate) navigator.vibrate(100);
