@@ -3,87 +3,75 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Siêu Quét QR 2026 - Pro Guide</title>
+    <title>Siêu Quét QR 2026 - Chuẩn Box Dài</title>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
-        body { margin: 0; background: #000; color: #fff; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; overflow: hidden; height: 100vh; }
+        /* GIỮ NGUYÊN LAYOUT CƠ BẢN ĐỂ KHÔNG LÀM BIẾN DẠNG BOX */
+        body { margin: 0; background: #000; color: #fff; font-family: sans-serif; overflow: hidden; height: 100vh; }
         
-        /* 1. GIỮ NGUYÊN VÙNG CAMERA CŨ ĐỂ KHÔNG MẤT BOX DÀI */
-        #reader { width: 100%; height: 55%; position: relative; z-index: 1; border-bottom: 2px solid #333; }
-        
-        /* 2. VÙNG ĐEN PHÍA DƯỚI: BIẾN THÀNH BẢNG HƯỚNG DẪN */
-        .guide-container {
-            flex: 1; width: 100%; background: #000; 
-            padding: 20px; display: flex; flex-direction: column; 
-            justify-content: center; align-items: center; z-index: 2;
-        }
-        .guide-box {
-            border: 1px dashed #00ff00; padding: 15px; border-radius: 15px;
-            width: 85%; background: rgba(0, 255, 0, 0.05);
-        }
-        .guide-box h4 { margin: 0 0 10px 0; color: #00ff00; font-size: 14px; text-transform: uppercase; text-align: center; }
-        .guide-box ul { margin: 0; padding-left: 20px; font-size: 12px; color: #ccc; line-height: 1.6; }
-        .guide-box li { margin-bottom: 5px; }
+        /* Camera chiếm phần phía trên */
+        #reader { width: 100%; height: 60vh; background: #000; }
 
-        /* 3. NÚT ĐÓNG & STATUS */
-        .close-btn { 
-            position: fixed; top: 15px; left: 15px; width: 40px; height: 40px; 
-            background: rgba(220, 53, 69, 0.8); color: white; border-radius: 50%; 
-            display: flex; align-items: center; justify-content: center; 
-            font-size: 24px; z-index: 1001; cursor: pointer; border: 2px solid #fff;
+        /* VÙNG HƯỚNG DẪN CHUYÊN NGHIỆP Ở PHẦN ĐEN PHÍA DƯỚI */
+        .instruction-area {
+            height: 40vh; width: 100%; background: #000;
+            display: flex; justify-content: center; align-items: flex-start;
+            padding-top: 20px;
         }
-        .status-top { position: fixed; top: 20px; right: 70px; background: rgba(0,255,0,0.2); padding: 6px 15px; border-radius: 20px; font-size: 12px; color: #00ff00; z-index: 1000; border: 1px solid #00ff00; }
+        .guide-card {
+            width: 85%; border: 1px dashed #00ff00; border-radius: 15px;
+            padding: 15px; background: rgba(0, 255, 0, 0.05);
+        }
+        .guide-card h4 { color: #00ff00; margin: 0 0 10px 0; text-align: center; font-size: 14px; text-transform: uppercase; }
+        .guide-card ul { margin: 0; padding-left: 20px; color: #ccc; font-size: 12px; line-height: 1.6; }
 
-        /* 4. THANH TRƯỢT DỌC BÊN PHẢI */
-        .config-panel {
-            position: fixed; right: 10px; top: 25%; /* Đẩy lên cao để không vướng guide */
-            width: 50px; background: rgba(0,0,0,0.6); 
-            padding: 15px 5px; border-radius: 25px; z-index: 1000; border: 1px solid #00ff00;
-            text-align: center; backdrop-filter: blur(5px);
+        /* THANH TRƯỢT DỌC BÊN PHẢI - NHƯ HÌNH 2C584A */
+        .vertical-ctrl {
+            position: fixed; right: 10px; top: 15%; 
+            width: 45px; background: rgba(0,0,0,0.6); 
+            padding: 15px 5px; border-radius: 20px; z-index: 1000; border: 1px solid #00ff00;
             display: flex; flex-direction: column; align-items: center;
         }
-        .config-panel label { font-size: 9px; color: #00ff00; margin-bottom: 10px; font-weight: bold; writing-mode: vertical-rl; }
-        #zoom-range { -webkit-appearance: slider-vertical; width: 20px; height: 150px; cursor: pointer; }
+        .vertical-ctrl label { font-size: 9px; color: #00ff00; margin-bottom: 10px; font-weight: bold; writing-mode: vertical-rl; }
+        #zoom-range { -webkit-appearance: slider-vertical; width: 20px; height: 160px; cursor: pointer; }
 
-        /* 5. BOX KẾT QUẢ */
-        #result-box { 
-            position: fixed; bottom: 20px; width: 90%; padding: 15px; 
-            background: rgba(25, 25, 25, 0.98); border-radius: 15px; 
-            display: none; border: 1px solid #00ff00; z-index: 1002;
-            box-shadow: 0 -5px 25px rgba(0,255,0,0.2);
-        }
-        #qr-text { word-break: break-all; color: #00ff00; font-family: monospace; margin-bottom: 15px; font-size: 14px; max-height: 80px; overflow-y: auto; }
-        .btn { background: #28a745; color: white; border: none; padding: 15px; border-radius: 10px; font-size: 16px; width: 100%; cursor: pointer; font-weight: bold; }
+        /* CÁC NÚT ĐIỀU KHIỂN KHÁC */
+        .close-btn { position: fixed; top: 15px; left: 15px; width: 40px; height: 40px; background: rgba(220, 53, 69, 0.8); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; z-index: 1001; border: 2px solid #fff; }
+        .status-tag { position: fixed; top: 20px; right: 65px; background: rgba(0,255,0,0.2); padding: 5px 12px; border-radius: 15px; font-size: 11px; color: #00ff00; z-index: 1000; border: 1px solid #00ff00; }
+        
+        #result-box { position: fixed; bottom: 20px; width: 90%; left: 5%; padding: 15px; background: rgba(25, 25, 25, 0.98); border-radius: 15px; display: none; border: 1px solid #00ff00; z-index: 1002; }
+        #qr-text { word-break: break-all; color: #00ff00; font-family: monospace; margin-bottom: 10px; font-size: 13px; }
+        .btn-ok { background: #28a745; color: white; border: none; padding: 14px; border-radius: 10px; font-size: 15px; width: 100%; font-weight: bold; }
     </style>
 </head>
 <body>
 
     <div class="close-btn" onclick="justClose()">×</div>
-    <div class="status-top" id="msg">ĐANG QUÉT...</div>
+    <div class="status-tag" id="msg">ĐANG QUÉT...</div>
 
-    <div class="config-panel">
+    <div class="vertical-ctrl">
         <label id="zoom-label">SIZE: 150PX</label>
-        <input type="range" id="zoom-range" min="50" max="300" value="150" step="5">
+        <input type="range" id="zoom-range" min="50" max="350" value="150" step="5">
     </div>
 
     <div id="reader"></div>
 
-    <div class="guide-container">
-        <div class="guide-box">
+    <div class="instruction-area">
+        <div class="guide-card">
             <h4>Hướng dẫn quét mã</h4>
             <ul>
                 <li>Đặt mã QR vào giữa khung hình chữ nhật.</li>
-                <li>Dùng <b>Thanh trượt bên phải</b> để phóng to khung nếu mã QR quá nhỏ hoặc khó lấy nét.</li>
-                <li>Đảm bảo môi trường đủ ánh sáng để nhận diện nhanh nhất.</li>
-                <li>Hệ thống hỗ trợ quét CCCD, Cavet và các loại thẻ nhựa.</li>
+                <li>Dùng <b>Thanh trượt bên phải</b> để phóng to vùng quét.</li>
+                <li>Đảm bảo mã QR không bị lóa sáng hoặc quá tối.</li>
+                <li>Hệ thống hỗ trợ tốt nhất cho mã QR trên CCCD và Cavet.</li>
             </ul>
         </div>
     </div>
     
     <div id="result-box">
-        <div style="margin-bottom: 8px; font-weight: bold; font-size: 13px; color: #888;">DỮ LIỆU:</div>
+        <div style="margin-bottom: 5px; font-weight: bold; font-size: 12px; color: #888;">KẾT QUẢ:</div>
         <div id="qr-text"></div>
-        <button class="btn" onclick="copyAndClose()">ĐỒNG Ý & GỬI DỮ LIỆU</button>
+        <button class="btn-ok" onclick="copyAndClose()">ĐỒNG Ý & XÁC NHẬN</button>
     </div>
 
     <script>
@@ -91,6 +79,7 @@
         var isScanning = false;
 
         var startCamera = function(boxSize) {
+            // TRẢ LẠI CONFIG CHUẨN ĐỂ CÓ BOX DÀI NHƯ HÌNH 2C584A
             var config = { 
                 fps: 30, 
                 qrbox: { width: boxSize, height: boxSize }
