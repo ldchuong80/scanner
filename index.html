@@ -3,73 +3,63 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Siêu Quét QR 2026 - Toàn Màn Hình Tuyệt Đối</title>
+    <title>Siêu Quét QR 2026 - Pro Guide</title>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
-        /* 1. RESET TOÀN BỘ TRANG - TRÀN VIỀN 100% */
-        html, body { 
-            margin: 0; padding: 0; 
-            width: 100% !important; height: 100% !important; 
-            background: #000; overflow: hidden; position: relative;
-        }
+        body { margin: 0; background: #000; color: #fff; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; overflow: hidden; height: 100vh; }
         
-        /* 2. ÉP CAMERA LẤP ĐẦY TOÀN BỘ MÀN HÌNH - XÓA SẠCH VÙNG ĐEN */
-        #reader { 
-            width: 100% !important; height: 100% !important; 
-            position: absolute !important; top: 0 !important; left: 0 !important; z-index: 1;
-            /* Thêm CSS này để ép video phủ kín không bị bóp tỷ lệ */
-            display: flex !important; justify-content: center !important; align-items: center !important;
-        }
+        /* 1. GIỮ NGUYÊN VÙNG CAMERA CŨ ĐỂ KHÔNG MẤT BOX DÀI */
+        #reader { width: 100%; height: 55%; position: relative; z-index: 1; border-bottom: 2px solid #333; }
         
-        /* QUAN TRỌNG NHẤT: Ép video dãn ra để fill đầy toàn bộ màn hình */
-        #reader video { 
-            width: 100% !important; height: 100% !important; 
-            object-fit: fill !important; /* "liều thuốc" ép dãn ra */
-            z-index: 1 !important;
+        /* 2. VÙNG ĐEN PHÍA DƯỚI: BIẾN THÀNH BẢNG HƯỚNG DẪN */
+        .guide-container {
+            flex: 1; width: 100%; background: #000; 
+            padding: 20px; display: flex; flex-direction: column; 
+            justify-content: center; align-items: center; z-index: 2;
         }
+        .guide-box {
+            border: 1px dashed #00ff00; padding: 15px; border-radius: 15px;
+            width: 85%; background: rgba(0, 255, 0, 0.05);
+        }
+        .guide-box h4 { margin: 0 0 10px 0; color: #00ff00; font-size: 14px; text-transform: uppercase; text-align: center; }
+        .guide-box ul { margin: 0; padding-left: 20px; font-size: 12px; color: #ccc; line-height: 1.6; }
+        .guide-box li { margin-bottom: 5px; }
 
-        /* 3. Icon Đóng và Kết quả - Tinh chỉnh vị trí cho FullScreen */
+        /* 3. NÚT ĐÓNG & STATUS */
         .close-btn { 
-            position: fixed; top: 15px; left: 15px; width: 42px; height: 42px; 
-            background: rgba(220, 53, 69, 0.9); color: white; border-radius: 50%; 
+            position: fixed; top: 15px; left: 15px; width: 40px; height: 40px; 
+            background: rgba(220, 53, 69, 0.8); color: white; border-radius: 50%; 
             display: flex; align-items: center; justify-content: center; 
-            font-size: 26px; z-index: 1001; cursor: pointer; border: 2px solid #fff;
+            font-size: 24px; z-index: 1001; cursor: pointer; border: 2px solid #fff;
         }
-        .status-top { 
-            position: fixed; top: 20px; left: 75px; background: rgba(0,0,0,0.6); 
-            padding: 6px 15px; border-radius: 20px; font-size: 12px; color: #00ff00; 
-            z-index: 1000; border: 1px solid #00ff00; backdrop-filter: blur(4px);
-        }
+        .status-top { position: fixed; top: 20px; right: 70px; background: rgba(0,255,0,0.2); padding: 6px 15px; border-radius: 20px; font-size: 12px; color: #00ff00; z-index: 1000; border: 1px solid #00ff00; }
 
-        /* 4. THANH TRƯỢT DỌC BÊN PHẢI - NẰM TRÊN CAMERA */
+        /* 4. THANH TRƯỢT DỌC BÊN PHẢI */
         .config-panel {
-            position: fixed; right: 10px; top: 50%; transform: translateY(-50%);
+            position: fixed; right: 10px; top: 25%; /* Đẩy lên cao để không vướng guide */
             width: 50px; background: rgba(0,0,0,0.6); 
-            padding: 20px 5px; border-radius: 25px; z-index: 1000; border: 1px solid #00ff00;
+            padding: 15px 5px; border-radius: 25px; z-index: 1000; border: 1px solid #00ff00;
             text-align: center; backdrop-filter: blur(5px);
             display: flex; flex-direction: column; align-items: center;
         }
-        .config-panel label { 
-            font-size: 10px; color: #00ff00; margin-bottom: 15px; 
-            font-weight: bold; text-transform: uppercase; writing-mode: vertical-rl;
-        }
-        #zoom-range { -webkit-appearance: slider-vertical; width: 28px; height: 200px; cursor: pointer; }
+        .config-panel label { font-size: 9px; color: #00ff00; margin-bottom: 10px; font-weight: bold; writing-mode: vertical-rl; }
+        #zoom-range { -webkit-appearance: slider-vertical; width: 20px; height: 150px; cursor: pointer; }
 
-        /* 5. BOX KẾT QUẢ - HIỂN THỊ ĐẸP TRÊN FULLSCREEN */
+        /* 5. BOX KẾT QUẢ */
         #result-box { 
-            position: fixed; bottom: 30px; width: 90%; left: 5%; padding: 20px; 
-            background: rgba(20, 20, 20, 0.95); border-radius: 18px; 
+            position: fixed; bottom: 20px; width: 90%; padding: 15px; 
+            background: rgba(25, 25, 25, 0.98); border-radius: 15px; 
             display: none; border: 1px solid #00ff00; z-index: 1002;
-            box-shadow: 0 -5px 30px rgba(0,0,0,0.8);
+            box-shadow: 0 -5px 25px rgba(0,255,0,0.2);
         }
         #qr-text { word-break: break-all; color: #00ff00; font-family: monospace; margin-bottom: 15px; font-size: 14px; max-height: 80px; overflow-y: auto; }
-        .btn { background: #28a745; color: white; border: none; padding: 16px; border-radius: 12px; font-size: 16px; width: 100%; cursor: pointer; font-weight: bold; }
+        .btn { background: #28a745; color: white; border: none; padding: 15px; border-radius: 10px; font-size: 16px; width: 100%; cursor: pointer; font-weight: bold; }
     </style>
 </head>
 <body>
 
     <div class="close-btn" onclick="justClose()">×</div>
-    <div class="status-top" id="msg">ĐANG KHỞI TẠO CAMERA...</div>
+    <div class="status-top" id="msg">ĐANG QUÉT...</div>
 
     <div class="config-panel">
         <label id="zoom-label">SIZE: 150PX</label>
@@ -77,9 +67,21 @@
     </div>
 
     <div id="reader"></div>
+
+    <div class="guide-container">
+        <div class="guide-box">
+            <h4>Hướng dẫn quét mã</h4>
+            <ul>
+                <li>Đặt mã QR vào giữa khung hình chữ nhật.</li>
+                <li>Dùng <b>Thanh trượt bên phải</b> để phóng to khung nếu mã QR quá nhỏ hoặc khó lấy nét.</li>
+                <li>Đảm bảo môi trường đủ ánh sáng để nhận diện nhanh nhất.</li>
+                <li>Hệ thống hỗ trợ quét CCCD, Cavet và các loại thẻ nhựa.</li>
+            </ul>
+        </div>
+    </div>
     
     <div id="result-box">
-        <div style="margin-bottom: 8px; font-weight: bold; font-size: 13px; color: #aaa;">DỮ LIỆU NHẬN DIỆN:</div>
+        <div style="margin-bottom: 8px; font-weight: bold; font-size: 13px; color: #888;">DỮ LIỆU:</div>
         <div id="qr-text"></div>
         <button class="btn" onclick="copyAndClose()">ĐỒNG Ý & GỬI DỮ LIỆU</button>
     </div>
@@ -92,7 +94,6 @@
             var config = { 
                 fps: 30, 
                 qrbox: { width: boxSize, height: boxSize }
-                // Không để aspectRatio: 1.0 để giữ nguyên cái box dài như bản cũ bạn đang dùng ổn
             };
 
             if (isScanning) {
@@ -108,10 +109,10 @@
             html5QrCode.start({ facingMode: "environment" }, config, qrCodeSuccessCallback)
                 .then(function() {
                     isScanning = true;
-                    document.getElementById('msg').innerText = "CAMERA ĐANG QUÉT";
+                    document.getElementById('msg').innerText = "CAMERA SẴN SÀNG";
                 })
                 .catch(function(err) {
-                    document.getElementById('msg').innerText = "LỖI CAMERA: " + err;
+                    document.getElementById('msg').innerText = "LỖI: " + err;
                 });
         };
 
@@ -119,7 +120,6 @@
             if (navigator.vibrate) navigator.vibrate(100);
             html5QrCode.stop();
             isScanning = false;
-            document.getElementById('msg').innerText = "XONG!";
             document.getElementById('qr-text').innerText = decodedText;
             document.getElementById('result-box').style.display = 'block';
             navigator.clipboard.writeText(decodedText).catch(function(){});
@@ -131,7 +131,6 @@
             startCamera(newSize);
         });
 
-        // Khởi động
         startCamera(150);
 
         function justClose() {
@@ -146,7 +145,7 @@
             var text = document.getElementById('qr-text').innerText;
             if (window.opener) {
                 window.opener.postMessage({ type: 'QR_SCAN_RESULT', data: text }, "*");
-                document.getElementById('msg').innerText = "ĐANG TRUYỀN DỮ LIỆU...";
+                document.getElementById('msg').innerText = "Đang gửi...";
             } else {
                 window.close();
             }
