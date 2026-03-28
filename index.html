@@ -122,4 +122,26 @@
         function justClose() {
             if (isScanning) {
                 html5QrCode.stop().then(function() { window.close(); }).catch(function() { window.close(); });
-            } else
+            } else {
+                window.close();
+            }
+        }
+
+        function copyAndClose() {
+            var text = document.getElementById('qr-text').innerText;
+            if (window.opener) {
+                window.opener.postMessage({ type: 'QR_SCAN_RESULT', data: text }, "*");
+                document.getElementById('msg').innerText = "Đang gửi...";
+            } else {
+                window.close();
+            }
+        }
+
+        window.addEventListener("message", function(event) {
+            if (event.data && event.data.type === 'CLOSE_SCANNER') {
+                window.close();
+            }
+        });
+    </script>
+</body>
+</html>
